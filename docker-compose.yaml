@@ -1,0 +1,79 @@
+version: "3.4"
+
+services:
+  f-nginx:
+    image: nginx:1.17.6
+    container_name: f-nginx
+    ports:
+      - 3000:3000
+    volumes: 
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./uwsgi:/etc/uwsgi
+      - ./static:/static
+    depends_on: 
+      - frontend
+
+  frontend:
+    container_name: frontend
+    build: 
+      context: .
+      dockerfile: DockerfileFront
+    volumes:
+      - type: volume
+        source: frontend
+        target: /dev/code
+    tty: true
+    expose: 
+      - 3001
+    depends_on: 
+      - b-nginx
+
+  b-nginx:
+    image: nginx:1.17.6
+    container_name: b-nginx
+    ports: 
+      - 8000:8000
+    volumes: 
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./uwsgi:/etc/uwsgi
+      - ./static:/static
+    depends_on: 
+      - backend
+
+  backend:
+    container_name: backend
+    build: 
+      context: .
+      dockerfile: DockerfileBack
+    volumes:
+      - type: volume
+        source: backend
+        target: /dev/code
+    tty: true
+    expose: 
+      - 8001
+    depends_on: 
+      - db
+
+  db:
+    container_name: db
+    image: mariadb:10.4.11
+    ports: 
+      - 3306:3306
+    environment: 
+      MYSQL_ROOT_PASSWORD: 1qaz@WSX
+      TZ: 'Asia/Tokyo'
+    volumes: 
+      - db.volume:/var/lib/mysql
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+
+volumes:
+  frontend:
+    name: frontend
+    driver: local
+  backend:
+    name: backend
+    driver: local
+  db.volume:
+    name: db.volume
+    driver: local
